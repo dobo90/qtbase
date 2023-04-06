@@ -2031,6 +2031,9 @@ void QGuiApplicationPrivate::processWindowSystemEvent(QWindowSystemInterfacePriv
     case QWindowSystemInterfacePrivate::WindowScreenChanged:
         QGuiApplicationPrivate::processWindowScreenChangedEvent(static_cast<QWindowSystemInterfacePrivate::WindowScreenChangedEvent *>(e));
         break;
+    case QWindowSystemInterfacePrivate::WindowDevicePixelRatioChanged:
+        QGuiApplicationPrivate::processWindowDevicePixelRatioChangedEvent(static_cast<QWindowSystemInterfacePrivate::WindowDevicePixelRatioChangedEvent *>(e));
+        break;
     case QWindowSystemInterfacePrivate::SafeAreaMarginsChanged:
         QGuiApplicationPrivate::processSafeAreaMarginsChangedEvent(static_cast<QWindowSystemInterfacePrivate::SafeAreaMarginsChangedEvent *>(e));
         break;
@@ -2542,6 +2545,9 @@ void QGuiApplicationPrivate::processWindowScreenChangedEvent(QWindowSystemInterf
     if (QWindow *window  = wse->window.data()) {
         if (window->screen() == wse->screen.data())
             return;
+
+        const qreal oldDevicePixelRatio = window->screen() ? window->screen()->devicePixelRatio() : 1.0;
+
         if (QWindow *topLevelWindow = window->d_func()->topLevelWindow(QWindow::ExcludeTransients)) {
             if (QScreen *screen = wse->screen.data())
                 topLevelWindow->d_func()->setTopLevelScreen(screen, false /* recreate */);
@@ -2553,7 +2559,22 @@ void QGuiApplicationPrivate::processWindowScreenChangedEvent(QWindowSystemInterf
             QWindowSystemInterfacePrivate::GeometryChangeEvent gce(window, QHighDpi::fromNativePixels(window->handle()->geometry(), window));
             processGeometryChangeEvent(&gce);
         }
+
+        const qreal newDevicePixelRatio = window->screen() ? window->screen()->devicePixelRatio() : 1.0;
+        if (!qFuzzyCompare(oldDevicePixelRatio, newDevicePixelRatio)) {
+            QEvent dprChangeEvent(QEvent::DevicePixelRatioChange);
+            QGuiApplication::sendSpontaneousEvent(window, &dprChangeEvent);
+        }
     }
+}
+
+void QGuiApplicationPrivate::processWindowDevicePixelRatioChangedEvent(QWindowSystemInterfacePrivate::WindowDevicePixelRatioChangedEvent *wde)
+{
+    if (wde->window.isNull())
+        return;
+
+    QEvent dprChangeEvent(QEvent::DevicePixelRatioChange);
+    QGuiApplication::sendSpontaneousEvent(wde->window, &dprChangeEvent);
 }
 
 void QGuiApplicationPrivate::processSafeAreaMarginsChangedEvent(QWindowSystemInterfacePrivate::SafeAreaMarginsChangedEvent *wse)

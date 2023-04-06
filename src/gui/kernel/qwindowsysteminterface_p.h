@@ -100,7 +100,8 @@ public:
         FlushEvents = 0x20,
         WindowScreenChanged = 0x21,
         SafeAreaMarginsChanged = 0x22,
-        ApplicationTermination = 0x23
+        ApplicationTermination = 0x23,
+        WindowDevicePixelRatioChanged = 0x24
     };
 
     class WindowSystemEvent {
@@ -184,6 +185,15 @@ public:
 
         QPointer<QWindow> window;
         QPointer<QScreen> screen;
+    };
+
+    class WindowDevicePixelRatioChangedEvent : public WindowSystemEvent {
+    public:
+        WindowDevicePixelRatioChangedEvent(QWindow *w)
+            : WindowSystemEvent(WindowDevicePixelRatioChanged), window(w)
+        { }
+
+        QPointer<QWindow> window;
     };
 
     class SafeAreaMarginsChangedEvent : public WindowSystemEvent {
